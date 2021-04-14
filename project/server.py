@@ -1,8 +1,11 @@
-from flask import Flask, request, jsonify, Blueprint, g
-from flask_cors import CORS
-import pymysql.cursors
 import http
 import os
+from time import sleep
+
+import pymysql.cursors
+from flask import Flask, request, jsonify, Blueprint, g
+from flask_cors import CORS
+from pymysql import OperationalError
 
 app = Flask(__name__)
 
@@ -10,12 +13,18 @@ app = Flask(__name__)
 CORS(app)
 
 # database connection
-db = pymysql.connect(
-    host=os.environ["DB_HOST"],
-    user=os.environ["DB_USER"],
-    password=os.environ["DB_PASS"],
-    database=os.environ["DB_DBNAME"],
-    cursorclass=pymysql.cursors.DictCursor)
+while True:
+    try:
+        db = pymysql.connect(
+            host=os.environ["DB_HOST"],
+            user=os.environ["DB_USER"],
+            password=os.environ["DB_PASS"],
+            database=os.environ["DB_DBNAME"],
+            cursorclass=pymysql.cursors.DictCursor)
+        break
+    except OperationalError:
+        # if connection failed, retry after 3 seconds
+        sleep(3)
 
 # store fields from watches table, used for validation
 with db.cursor() as cur:
@@ -51,7 +60,7 @@ def read(sku):
     with db.cursor() as cursor:
         cursor.execute("select * from watches where sku = %s", sku)
         watch = cursor.fetchone()
-        response = jsonify(watch) if watch else "", http.HTTPStatus.NOT_FOUND
+        response = jsonify(watch) if watch else ("", http.HTTPStatus.NOT_FOUND)
 
     # cache if found
     g.cache = watch is not None

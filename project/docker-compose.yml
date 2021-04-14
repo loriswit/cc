@@ -1,0 +1,32 @@
+services:
+  web:
+    container_name: watch-info-service
+    build: .
+    ports:
+      - "1080:1080"
+    environment:
+      HTTP_USER: cloud
+      HTTP_PASS: computing
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DBNAME: watches
+      DB_USER: watches
+      DB_PASS: watches
+    depends_on:
+      - db
+  db:
+    container_name: watch-database
+    image: mysql:5.7
+    restart: always
+    environment:
+      MYSQL_DATABASE: watches
+      MYSQL_USER: watches
+      MYSQL_PASSWORD: watches
+      MYSQL_ROOT_PASSWORD: watches
+    volumes:
+      - db-data:/var/lib/mysql:rw
+      - ./watches.sql:/docker-entrypoint-initdb.d/watches.sql
+
+volumes:
+  db-data:
+    name: watch-volume
