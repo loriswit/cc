@@ -123,15 +123,21 @@ def find():
     return response
 
 
-# no cache control by default
 @api.before_request
 def before():
+    # no cache control by default
     g.cache = False
 
+    # actions that change the data require authentication
+    if request.method in ["POST", "PUT", "DELETE"]:
+        auth = request.authorization
+        if not auth or auth.username != os.environ["HTTP_USER"] or auth.password != os.environ["HTTP_PASS"]:
+            return "", http.HTTPStatus.UNAUTHORIZED
 
-# set cache control if required
+
 @api.after_request
 def cache(response):
+    # set cache control if required
     if g.cache:
         response.cache_control.max_age = 3600
     return response
