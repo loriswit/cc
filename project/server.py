@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, Blueprint
+from flask import Flask, request, jsonify, Blueprint, g
 from flask_cors import CORS
 import pymysql.cursors
 import http
@@ -51,7 +51,11 @@ def read(sku):
     with db.cursor() as cursor:
         cursor.execute("select * from watches where sku = %s", sku)
         watch = cursor.fetchone()
-        return jsonify(watch) if watch else "", http.HTTPStatus.NOT_FOUND
+        response = jsonify(watch) if watch else "", http.HTTPStatus.NOT_FOUND
+
+    # cache if found
+    g.cache = watch is not None
+    return response
 
 
 # PUT /watch/{sku}: updates a watch in the store with form data
@@ -85,7 +89,10 @@ def delete(sku):
 def complete(prefix):
     with db.cursor() as cursor:
         cursor.execute(f"select * from watches where sku like '{prefix}%' limit 100")
-        return jsonify(cursor.fetchall())
+        response = jsonify(cursor.fetchall())
+
+    g.cache = True
+    return response
 
 
 # GET /watch/find: finds watches by any criteria
@@ -101,7 +108,24 @@ def find():
         conditions.extend([f"{p}='{arg}'" for p in parameters if (arg := request.args.get(p))])
 
         cursor.execute(f"select * from watches where {' and '.join(conditions)} limit 100")
-        return jsonify(cursor.fetchall())
+        response = jsonify(cursor.fetchall())
+
+    g.cache = True
+    return response
+
+
+# no cache control by default
+@api.before_request
+def before():
+    g.cache = False
+
+
+# set cache control if required
+@api.after_request
+def cache(response):
+    if g.cache:
+        response.cache_control.max_age = 3600
+    return response
 
 
 # register routes with base URL
