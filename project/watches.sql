@@ -12,6 +12,8 @@ CREATE TABLE `watches` (
   `movement` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
+CREATE UNIQUE INDEX sku_index ON watches(sku);
+
 INSERT INTO `watches` (`sku`, `type`, `status`, `gender`, `year`, `dial_material`, `dial_color`, `case_material`, `case_form`, `bracelet_material`, `movement`) VALUES
 ('ACBF2180', 'chrono', 'old', 'man', 2017, 'STANDARD', 'BLACK', 'TITANIUM', 'ROUND', 'WITHOUT BRACELET', 'CALIBRE_16_AUTO'),
 ('ACBF2A80', 'chrono', 'current', 'man', 2018, 'STANDARD', 'BLACK', 'TITANIUM', 'ROUND', 'WITHOUT BRACELET', 'CALIBRE_16_AUTO'),
