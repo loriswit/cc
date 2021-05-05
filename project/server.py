@@ -81,13 +81,18 @@ def update(sku):
         return "body must be in JSON format", http.HTTPStatus.BAD_REQUEST
 
     # only keep valid properties
-    updates = [f"{key}='{value}'" for key, value in request.json.items() if key in fields]
+    updates = [f"{key}={db.escape(value)}" for key, value in request.json.items() if key in fields]
 
     with db.cursor() as cursor:
-        affected = cursor.execute(f"update watches set {','.join(updates)} where sku = %s", sku)
+        # first, check if watch exists
+        cursor.execute("select 1 from watches where sku = %s", sku)
+        if not cursor.fetchone():
+            return "", http.HTTPStatus.NOT_FOUND
+        # then update watch
+        cursor.execute(f"update watches set {','.join(updates)} where sku = %s", sku)
 
     db.commit()
-    return ("", http.HTTPStatus.OK) if affected > 0 else ("", http.HTTPStatus.NOT_FOUND)
+    return "", http.HTTPStatus.OK
 
 
 # DELETE/watch/{sku}: deletes a watch
@@ -104,7 +109,7 @@ def delete(sku):
 @api.route("/watch/complete-sku/<prefix>")
 def complete(prefix):
     with db.cursor() as cursor:
-        cursor.execute(f"select * from watches where sku like '{prefix}%'")
+        cursor.execute(f"select * from watches where sku like %s", prefix + "%")
         response = jsonify(cursor.fetchall())
 
     g.cache = True
@@ -116,12 +121,12 @@ def complete(prefix):
 def find():
     with db.cursor() as cursor:
         # partial sku
-        sku = request.args.get("sku") or ""
-        conditions = [f"sku like '%{sku}%'"]
+        sku = "%" + (request.args.get("sku") or "") + "%"
+        conditions = [f"sku like {db.escape(sku)}"]
 
         # generate query search conditions
         parameters = ["type", "status", "gender", "year"]
-        conditions.extend([f"{p}='{arg}'" for p in parameters if (arg := request.args.get(p))])
+        conditions.extend([f"{p}={db.escape(arg)}" for p in parameters if (arg := request.args.get(p))])
 
         cursor.execute(f"select * from watches where {' and '.join(conditions)}")
         response = jsonify(cursor.fetchall())
