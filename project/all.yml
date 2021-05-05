@@ -1,0 +1,117 @@
+#######################
+# info service v1     #
+#######################
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: info-v1
+  labels:
+    run: info-v1
+spec:
+  ports:
+    - port: 80
+      targetPort: 1080
+  selector:
+    run: info-v1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: info-v1
+spec:
+  selector:
+    matchLabels:
+      run: info-v1
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        run: info-v1
+    spec:
+      containers:
+        - name: info-v1
+          image: loriswit/watches-info-v1
+          ports:
+            - containerPort: 1080
+          env:
+            - name: HTTP_USER
+              value: cloud
+            - name: HTTP_PASS
+              value: computing
+            - name: DB_HOST
+              value: "35.233.99.251"
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_DBNAME
+              value: watches
+            - name: DB_USER
+              value: root
+            - name: DB_PASS
+              value: 5nzIyja7CyGFOH66
+---
+
+#######################
+# image service v1    #
+#######################
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: image-v1
+  labels:
+    run: image-v1
+spec:
+  ports:
+    - port: 80
+      targetPort: 1080
+  selector:
+    run: image-v1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: image-v1
+spec:
+  selector:
+    matchLabels:
+      run: image-v1
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        run: image-v1
+    spec:
+      containers:
+        - name: image-v1
+          image: loriswit/watches-image-v1
+          ports:
+            - containerPort: 1080
+---
+
+#######################
+# ingress             #
+#######################
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /info/v1
+            pathType: Prefix
+            backend:
+              service:
+                name: info-v1
+                port:
+                  number: 80
+          - path: /image/v1
+            pathType: Prefix
+            backend:
+              service:
+                name: image-v1
+                port:
+                  number: 80
