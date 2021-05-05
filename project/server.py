@@ -5,7 +5,7 @@ from time import sleep
 import pymysql.cursors
 from flask import Flask, request, jsonify, Blueprint, g
 from flask_cors import CORS
-from pymysql import OperationalError
+from pymysql import OperationalError, DataError, IntegrityError
 
 app = Flask(__name__)
 
@@ -30,6 +30,7 @@ while True:
 with db.cursor() as cur:
     cur.execute("show columns from watches")
     fields = [col["Field"] for col in cur.fetchall()]
+    required = ["sku", "type", "status", "gender", "year"]
 
 # define API routes
 api = Blueprint("watch-info-service", __name__)
@@ -41,14 +42,20 @@ def create():
     if not request.json:
         return "body must be in JSON format", http.HTTPStatus.BAD_REQUEST
 
-    # all fields are required
-    missing = set(fields) - set(request.json.keys())
+    # check required fields
+    missing = set(required) - set(request.json.keys())
     if missing:
-        return f"missing fields: {missing}", http.HTTPStatus.BAD_REQUEST
+        return f"missing required fields: {missing}", http.HTTPStatus.BAD_REQUEST
 
     with db.cursor() as cursor:
-        query = f"insert into watches ({','.join(fields)}) values ({','.join(['%s'] * len(fields))})"
-        cursor.execute(query, [request.json[col] for col in fields])
+        columns = set.intersection(set(request.json.keys()), fields)
+        query = f"insert into watches ({','.join(columns)}) values ({','.join(['%s'] * len(columns))})"
+        try:
+            cursor.execute(query, [request.json[col] for col in columns])
+        except DataError as e:
+            return f"invalid input: {e.args[1]}", http.HTTPStatus.BAD_REQUEST
+        except IntegrityError:
+            return f"this watch already exists: {request.json['sku']}", http.HTTPStatus.BAD_REQUEST
 
     db.commit()
     return "", http.HTTPStatus.OK
@@ -97,7 +104,7 @@ def delete(sku):
 @api.route("/watch/complete-sku/<prefix>")
 def complete(prefix):
     with db.cursor() as cursor:
-        cursor.execute(f"select * from watches where sku like '{prefix}%' limit 100")
+        cursor.execute(f"select * from watches where sku like '{prefix}%'")
         response = jsonify(cursor.fetchall())
 
     g.cache = True
@@ -116,7 +123,7 @@ def find():
         parameters = ["type", "status", "gender", "year"]
         conditions.extend([f"{p}='{arg}'" for p in parameters if (arg := request.args.get(p))])
 
-        cursor.execute(f"select * from watches where {' and '.join(conditions)} limit 100")
+        cursor.execute(f"select * from watches where {' and '.join(conditions)}")
         response = jsonify(cursor.fetchall())
 
     g.cache = True
@@ -128,8 +135,8 @@ def before():
     # no cache control by default
     g.cache = False
 
-    # actions that change the data require authentication
-    if request.method in ["POST", "PUT", "DELETE"]:
+    # check for basic authentication
+    if request.method in ["GET", "POST", "PUT", "PATCH", "DELETE"]:
         auth = request.authorization
         if not auth or auth.username != os.environ["HTTP_USER"] or auth.password != os.environ["HTTP_PASS"]:
             return "", http.HTTPStatus.UNAUTHORIZED
