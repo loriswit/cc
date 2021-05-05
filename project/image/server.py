@@ -1,7 +1,9 @@
+import http
+import re
 from urllib.error import HTTPError
 from urllib.request import urlopen
 
-from flask import Flask, Blueprint, make_response
+from flask import Flask, Blueprint, make_response, Response, request
 from flask_cors import CORS
 
 app = Flask(__name__)
@@ -24,6 +26,24 @@ def read(sku):
         return response
     except HTTPError as e:
         return "", e.code
+
+
+@api.after_request
+def cache(response: Response):
+    # generate etag from body
+    response.add_etag()
+
+    # don't send image if unchanged
+    if "If-None-Match" in request.headers:
+        # split request etags and remove quotes
+        matches = [match.replace("\"", "") for match in re.split(",\\s*", request.headers["If-None-Match"])]
+        (etag, weak) = response.get_etag()
+        if etag in matches:
+            return make_response("", http.HTTPStatus.NOT_MODIFIED)
+
+    # expire after one hour
+    response.cache_control.max_age = 3600
+    return response
 
 
 # register routes with base URL
