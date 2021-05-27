@@ -112,16 +112,16 @@ metadata:
 spec:
   rules:
     - http:
-        paths:
-          - path: /info/v1
-            pathType: Prefix
+        paths: # wildcards in paths are specific to GLBC
+          - path: /info/v1/*
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: info-v1
                 port:
                   number: 80
-          - path: /image/v1
-            pathType: Prefix
+          - path: /image/v1/*
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: image-v1
