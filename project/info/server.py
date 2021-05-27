@@ -155,8 +155,19 @@ def cache(response):
     return response
 
 
-# register routes with base URL
+# define health check routes
+hc = Blueprint("health-check", __name__)
+
+
+# GET /health: endpoint for health checks
+@hc.route("/health")
+def check_health():
+    return "", http.HTTPStatus.OK
+
+
+# register routes with their base URL
 app.register_blueprint(api, url_prefix="/info/v1")
+app.register_blueprint(hc)
 
 # start the server
 if __name__ == "__main__":

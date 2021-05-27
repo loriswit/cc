@@ -32,6 +32,12 @@ spec:
       containers:
         - name: info-v1
           image: loriswit/watches-info-v1
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 1080
+            initialDelaySeconds: 15
+            periodSeconds: 15
           ports:
             - containerPort: 1080
           env:
@@ -40,7 +46,7 @@ spec:
             - name: HTTP_PASS
               value: computing
             - name: DB_HOST
-              value: "35.233.99.251"
+              value: "34.65.128.147"
             - name: DB_PORT
               value: "3306"
             - name: DB_DBNAME
@@ -85,6 +91,12 @@ spec:
       containers:
         - name: image-v1
           image: loriswit/watches-image-v1
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 1080
+            initialDelaySeconds: 15
+            periodSeconds: 15
           ports:
             - containerPort: 1080
 ---
