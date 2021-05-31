@@ -2,18 +2,21 @@ import decimal
 import http
 import json
 import numbers
+import os
 
 import boto3
 
 dynamodb = boto3.resource("dynamodb")
-table = dynamodb.Table("watches")
+table = dynamodb.Table(os.environ["TABLE_NAME"])
 
 
 # generate response supporting CORS
 def make_response(event: dict, code: int, body={}):
     response = {"statusCode": code}
-    if "origin" in event["headers"]:
-        response["headers"] = {"Access-Control-Allow-Origin": event["headers"]["origin"]}
+    # headers fields name are case insensitive
+    headers = {k.lower(): v for k, v in event["headers"].items()}
+    if "origin" in headers:
+        response["headers"] = {"Access-Control-Allow-Origin": headers["origin"]}
     if body:
         response["body"] = json.dumps(body)
     return response

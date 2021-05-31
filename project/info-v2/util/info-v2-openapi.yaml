@@ -1,0 +1,92 @@
+openapi: 3.0.0
+info:
+  title: Watch info service
+  version: '2.0'
+servers:
+  - url: 'http://localhost/info/v2'
+  - url: 'http://localhost:1080/info/v2'
+security:
+  - basicAuth: []
+paths:
+  /watch:
+    post:
+      summary: Add a new watch to the store
+      requestBody:
+        description: Watch object that needs to be added to the store
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Watch'
+      responses:
+        '200':
+          description: Successful operation
+        '400':
+          description: Invalid input
+  '/watch/{sku}':
+    get:
+      summary: Return watch data
+      parameters:
+        - name: sku
+          in: path
+          description: SKU of the watch to return
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Watch'
+        '404':
+          description: Watch not found
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+  schemas:
+    Watch:
+      type: object
+      required:
+        - sku
+        - type
+        - status
+        - gender
+        - year
+      properties:
+        sku:
+          type: string
+        type:
+          type: string
+          enum:
+            - watch
+            - chrono
+        status:
+          type: string
+          enum:
+            - old
+            - current
+            - outlet
+        gender:
+          type: string
+          enum:
+            - man
+            - woman
+        year:
+          type: integer
+          format: int64
+        dial_material:
+          type: string
+        dial_color:
+          type: string
+        case_material:
+          type: string
+        case_form:
+          type: string
+        bracelet_material:
+          type: string
+        movement:
+          type: string
