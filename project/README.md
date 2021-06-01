@@ -2,31 +2,91 @@
 
 By [Boris Mottet](https://gitlab.com/Risbobo) and [Loris Witschard](https://gitlab.com/loriswit)
 
+## Table of content
+
+- [info-v1 & image-v1](#info-v1---image-v1)
+  * [Prerequisite](#prerequisite)
+  * [Building images](#building-images)
+  * [Deploying to GKE](#deploying-to-gke)
+- [info-v2](#info-v2)
+  * [Prerequisite](#prerequisite-1)
+  * [Environment variables](#environment-variables)
+  * [Setup](#setup)
+  * [Development](#development)
+
 ## info-v1 & image-v1
 
-Start by building the images:
+### Prerequisite
+
+The following CLI tools are required to set up this part of the project:
+- `gcloud`: manage GCP services
+- `docker`: build and push container images
+- `kubectl`: deploy to Kubernetes cluster
+- `mysql`: (optional) import watches into database
+
+### Building images
+
+The images names can be defined in the following environment variables. These will also be used during the deployment, so make sure you are allowed to push these images to Docker Hub.
+
+| Variable | Description | Default |
+| --- | --- | --- |
+| `INFO_V1_IMAGE` | the image name of info-v1 | loriswit/watches-info-v1 |
+| `IMAGE_V1_IMAGE` | the image name of image-v1 | loriswit/watches-image-v1 |
+
+Run the following command to build the images:
 ```sh
 ./build.sh
 ```
 
-Then, connect `kubectl` to any cluster and deploy the services:
+### Deploying to GKE
+
+To deploy the services to Google Kubernetes Engine (GKE), start by defining the following environment variables. These don't have default values, so you cannot omit any of them.
+
+| Variable | Description |
+| --- | --- |
+| `INFO_V1_HTTP_USER` | the basic-auth username |
+| `INFO_V1_HTTP_PASS` | the basic-auth password |
+| `INFO_V1_DB_HOST` | the database hostname |
+| `INFO_V1_DB_PORT` | the database port |
+| `INFO_V1_DB_DBNAME` | the database name |
+| `INFO_V1_DB_USER` | the database user |
+| `INFO_V1_DB_PASS` | the database user |
+
+Make sure you have an existing MySQL database (e.g., Cloud SQL) that matches the values from these variables. You can import data from *info/watches.sql* into the database by running:
+```sh
+mysql -h $INFO_V1_DB_HOST -u $INFO_V1_DB_USER -p $INFO_V1_DB_DBNAME < info/watches.sql
+```
+
+Log in to your Docker Hub and Google Cloud accounts:
+```sh
+docker login
+gcloud auth login
+```
+
+Create a GKE cluster and connect the gcloud CLI:
+```sh
+gcloud container clusters get-credentials <cluster-name> --zone <zone> --project <project-name>
+```
+
+Deploy the services to GKE by running:
 ```sh
 ./deploy.sh
 ```
 
-**Note**: this requires authorisation to push to the appropriate DockerHub repositories.
+**Note**: when you make change to the code or to the GKE configuration, simply run `./deploy.sh` again to deploy the changes to GKE.
 
-### Database access
+#### Important note
 
-Right now, the database address and credentials are hard-coded in `all.yml`. The default values refer to a Cloud SQL database that is available from everywhere. To connect to a different database, you have to manually edit lines 38-51.
-
-This will be improved in a further version to allow easier (and more secure) configuration with environment variables.
+If the *info-v1* service gets disconnected from the database for some reason, it cannot connect to it again. To fix this, simply restart the deployment:
+```sh
+kubectl rollout restart deployment/info-v1
+```
 
 ## info-v2
 
 ### Prerequisite
 
-The following CLI tools are required to set up the project:
+The following CLI tools are required to set up this part of the project:
 - `aws`: manage AWS services (version 2)
 - `python3`: run Python scripts
 - `zip`: create Lambda deployment packages

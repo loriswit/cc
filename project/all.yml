@@ -42,19 +42,19 @@ spec:
             - containerPort: 1080
           env:
             - name: HTTP_USER
-              value: cloud
+              value: "$INFO_V1_HTTP_USER"
             - name: HTTP_PASS
-              value: computing
+              value: "$INFO_V1_HTTP_PASS"
             - name: DB_HOST
-              value: "34.65.128.147"
+              value: "$INFO_V1_DB_HOST"
             - name: DB_PORT
-              value: "3306"
+              value: "$INFO_V1_DB_PORT"
             - name: DB_DBNAME
-              value: watches
+              value: "$INFO_V1_DB_DBNAME"
             - name: DB_USER
-              value: root
+              value: "$INFO_V1_DB_USER"
             - name: DB_PASS
-              value: 5nzIyja7CyGFOH66
+              value: "$INFO_V1_DB_PASS"
 ---
 
 #######################
