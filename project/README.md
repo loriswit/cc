@@ -84,6 +84,8 @@ kubectl rollout restart deployment/info-v1
 
 ## info-v2
 
+The API of the info-v2 service is currently available at: https://fq5hws407f.execute-api.eu-central-1.amazonaws.com/v2
+
 ### Prerequisite
 
 The following CLI tools are required to set up this part of the project:
